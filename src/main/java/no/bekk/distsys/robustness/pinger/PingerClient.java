@@ -8,6 +8,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,7 +21,7 @@ public class PingerClient implements Pinger {
     private final String hostname;
     private final ObjectMapper mapper;
 
-    public PingerClient(HttpClient client, String host, ObjectMapper mapper) {
+    public PingerClient(@NotNull HttpClient client, @NotNull String host, @NotNull ObjectMapper mapper) {
         this.client = client;
         this.mapper = mapper;
         this.hostname = StringUtils.stripEnd(host, "/");
@@ -31,6 +32,7 @@ public class PingerClient implements Pinger {
         try {
             URI uri = new URI(hostname + ENDPOINT_PING);
             HttpGet get = new HttpGet(uri);
+            get.addHeader("Accept", "application/json");
 
             HttpResponse resp = client.execute(get);
 
