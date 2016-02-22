@@ -29,18 +29,22 @@ public class PingerClient implements Pinger {
 
     @Override
     public Pong Ping() {
+        HttpGet get = null;
         try {
             URI uri = new URI(hostname + ENDPOINT_PING);
-            HttpGet get = new HttpGet(uri);
+            get = new HttpGet(uri);
             get.addHeader("Accept", "application/json");
 
             HttpResponse resp = client.execute(get);
-
             return mapper.readValue(resp.getEntity().getContent(), Pong.class);
         } catch (URISyntaxException e) {
             LOG.error("[Ping] Bad uri: {}", e.getMessage(), e);
         } catch (IOException e) {
             LOG.error("[Ping] exception while executing request", e);
+        } finally {
+            if (get != null) {
+                get.releaseConnection();
+            }
         }
         return null;
     }
