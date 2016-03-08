@@ -16,12 +16,14 @@ server:
         logFormat: "%-5level [RequestID: %X{requestID}] [%date] [%thread] %logger %message%n"
 
 httpClient:
-  timeout: 500ms
-  connectionTimeout: 500ms
+  maxConnections: 128
+  timeout: 10000ms
+  connectionTimeout: 10000ms
   retries: 3
-  keepAlive: 500ms
+  keepAlive: 5m
 
-pingerHost: http://localhost:8089
+#pingerHost: http://localhost:8089
+pingerHost: http://192.168.2.2:8080/
 
 logging:
   level: INFO

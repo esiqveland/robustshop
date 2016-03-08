@@ -4,10 +4,7 @@ import io.dropwizard.Application;
 import io.dropwizard.client.HttpClientBuilder;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import no.bekk.distsys.robustness.pinger.LoggingPinger;
-import no.bekk.distsys.robustness.pinger.PingResource;
-import no.bekk.distsys.robustness.pinger.Pinger;
-import no.bekk.distsys.robustness.pinger.PingerClient;
+import no.bekk.distsys.robustness.pinger.*;
 import org.apache.http.client.HttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +27,7 @@ public class PingerApplication extends Application<RobustConfiguration> {
         HttpClient client = new HttpClientBuilder(env).using(config.getHttpClient()).build("pinger-client");
         String pingerHost = config.getPingerHost();
 
-        Pinger pinger = new PingerClient(client, pingerHost, env.getObjectMapper());
+        Pinger pinger = new MyPingerClient(pingerHost, env.getObjectMapper());
         PingResource pingResource = new PingResource(new LoggingPinger(pinger));
 
         env.jersey().register(pingResource);

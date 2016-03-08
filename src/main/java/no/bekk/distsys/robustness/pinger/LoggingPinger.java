@@ -16,11 +16,11 @@ public class LoggingPinger implements Pinger {
     public Pong Ping() {
         long before = System.currentTimeMillis();
         try {
-            LOG.debug("[Ping]");
+//            LOG.debug("[Ping]");
             return pinger.Ping();
         } finally {
             long after = System.currentTimeMillis();
-            LOG.debug("[Ping] took {}ms", after-before);
+//            LOG.debug("[Ping] took {}ms", after-before);
         }
     }
 }
