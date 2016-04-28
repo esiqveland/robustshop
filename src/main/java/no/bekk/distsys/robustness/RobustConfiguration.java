@@ -14,6 +14,7 @@ public class RobustConfiguration extends Configuration {
 
     @JsonProperty
     private HttpClientConfiguration httpClient;
+    private String zooKeeper = "localhost:1234";
 
     public String getPingerHost() {
         return pingerHost;
@@ -21,5 +22,9 @@ public class RobustConfiguration extends Configuration {
 
     public HttpClientConfiguration getHttpClient() {
         return httpClient;
+    }
+
+    public String getZooKeeper() {
+        return zooKeeper;
     }
 }
