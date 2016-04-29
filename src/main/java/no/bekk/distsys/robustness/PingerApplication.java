@@ -5,15 +5,14 @@ import io.dropwizard.client.HttpClientBuilder;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import no.bekk.distsys.robustness.dealer.DealerResource;
-import no.bekk.distsys.robustness.dealer.MyWatcher;
-import no.bekk.distsys.robustness.pinger.*;
+import no.bekk.distsys.robustness.dealer.ZooKeeperService;
+import no.bekk.distsys.robustness.pinger.LoggingPinger;
+import no.bekk.distsys.robustness.pinger.MyPingerClient;
+import no.bekk.distsys.robustness.pinger.PingResource;
+import no.bekk.distsys.robustness.pinger.Pinger;
 import org.apache.http.client.HttpClient;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.TimeUnit;
 
 public class PingerApplication extends Application<RobustConfiguration> {
     private static final Logger LOG = LoggerFactory.getLogger(PingerApplication.class);
@@ -36,11 +35,11 @@ public class PingerApplication extends Application<RobustConfiguration> {
         Pinger pinger = new MyPingerClient(pingerHost, env.getObjectMapper());
         PingResource pingResource = new PingResource(new LoggingPinger(pinger));
 
-        DealerResource dealerResource = new DealerResource();
+        ZooKeeperService zooKeeperService = new ZooKeeperService(config.getZooKeeper());
+        env.lifecycle().manage(zooKeeperService);
 
-        Watcher watcher = new MyWatcher(dealerResource);
-        ZooKeeper zooKeeper = new ZooKeeper(config.getZooKeeper(), (int)TimeUnit.SECONDS.toMillis(15), watcher);
-
+        DealerResource dealerResource = new DealerResource(zooKeeperService);
+        zooKeeperService.addListener(dealerResource);
 
         env.jersey().register(pingResource);
         env.jersey().register(dealerResource);

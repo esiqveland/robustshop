@@ -1,31 +1,45 @@
 package no.bekk.distsys.robustness.dealer;
 
+import io.dropwizard.lifecycle.Managed;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
-public class ZooKeeperService {
+public class ZooKeeperService implements Watcher, Managed {
+    private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperService.class);
 
-    private final ZooKeeper zooKeeper;
+    private ZooKeeper zooKeeper;
+    private final ConcurrentLinkedQueue<ZKListener> listeners = new ConcurrentLinkedQueue<>();
+    private final String url;
 
-    public ZooKeeperService(final String url, final ProcessNodeWatcher processNodeWatcher) throws IOException {
-        zooKeeper = new ZooKeeper(url, (int) TimeUnit.SECONDS.toMillis(5), processNodeWatcher);
+    public ZooKeeperService(final String url) throws IOException {
+        this.url = url;
     }
 
-    public String createNode(final String node, final boolean watch, final boolean ephimeral) {
+    public void addListener(ZKListener listener) {
+        listeners.add(listener);
+    }
+
+    public String createNode(final String node, final boolean watch, final boolean ephemereal) {
         String createdNodePath = null;
+
         try {
 
             final Stat nodeStat = zooKeeper.exists(node, watch);
 
             if (nodeStat == null) {
-                createdNodePath = zooKeeper.create(node, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, (ephimeral ? CreateMode.EPHEMERAL_SEQUENTIAL : CreateMode.PERSISTENT));
+                createdNodePath = zooKeeper.create(node, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, (ephemereal ? CreateMode.EPHEMERAL_SEQUENTIAL : CreateMode.PERSISTENT));
             } else {
                 createdNodePath = node;
             }
@@ -62,5 +76,50 @@ public class ZooKeeperService {
         }
 
         return childNodes;
+    }
+
+    @Override
+    public void process(WatchedEvent event) {
+        LOG.info("[process] event={}", event);
+        switch (event.getState()) {
+            case Disconnected:
+                if (event.getType() == Event.EventType.None) {
+                    listeners.forEach(ZKListener::Disconnected);
+                }
+                break;
+            case SyncConnected:
+                if (event.getType() == Event.EventType.None) {
+                    listeners.forEach(ZKListener::Connected);
+                }
+                break;
+            case AuthFailed:
+                listeners.forEach(ZKListener::Disconnected);
+                break;
+            case ConnectedReadOnly:
+                break;
+            case SaslAuthenticated:
+                break;
+            case Expired:
+                listeners.forEach(ZKListener::Disconnected);
+                // TODO: not sure what to do yet. it's all over...
+                System.exit(-1);
+                break;
+        }
+        switch (event.getType()) {
+            case None:
+                break;
+            default:
+                listeners.forEach((listener) -> listener.Notify(event));
+        }
+    }
+
+    @Override
+    public void start() throws Exception {
+        zooKeeper = new ZooKeeper(url, (int) TimeUnit.SECONDS.toMillis(5), this);
+    }
+
+    @Override
+    public void stop() throws Exception {
+        zooKeeper.close();
     }
 }
