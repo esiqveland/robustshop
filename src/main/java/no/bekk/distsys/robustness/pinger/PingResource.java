@@ -23,6 +23,9 @@ public class PingResource {
     public Response getAnswer() {
         Pong answer = pinger.Ping();
 
-        return Response.ok(answer).build();
+        if (answer != null) {
+            return Response.ok(answer).build();
+        }
+        return Response.status(503).entity("\"{\"error\": \"backend is unavailable\"}\"").build();
     }
 }
